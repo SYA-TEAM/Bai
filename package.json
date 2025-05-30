@@ -1,6 +1,6 @@
 {
   "name": "meta",
-  "version": "2.0.2",
+  "version": "2.0.4",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
