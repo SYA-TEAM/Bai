@@ -4,6 +4,7 @@ const protobufs = require('./protobufs');
 
 class SenderKeyMessage extends CiphertextMessage {
   SIGNATURE_LENGTH = 64;
+  CURRENT_VERSION = 3;
 
   constructor(
     keyId = null,
@@ -13,6 +14,7 @@ class SenderKeyMessage extends CiphertextMessage {
     serialized = null
   ) {
     super();
+
     if (serialized) {
       const version = serialized[0];
       const message = serialized.slice(1, serialized.length - this.SIGNATURE_LENGTH);
@@ -22,33 +24,43 @@ class SenderKeyMessage extends CiphertextMessage {
 
       this.serialized = serialized;
       this.messageVersion = (version & 0xff) >> 4;
-
       this.keyId = senderKeyMessage.id;
       this.iteration = senderKeyMessage.iteration;
       this.ciphertext = senderKeyMessage.ciphertext;
       this.signature = signature;
     } else {
-      const version = (((this.CURRENT_VERSION << 4) | this.CURRENT_VERSION) & 0xff) % 256;
-      ciphertext = Buffer.from(ciphertext); // .toString('base64');
-      const message = protobufs.SenderKeyMessage.encode(
-        protobufs.SenderKeyMessage.create({
-          id: keyId,
-          iteration,
-          ciphertext,
-        })
-      ).finish();
-
-      const signature = this.getSignature(
-        signatureKey,
-        Buffer.concat([Buffer.from([version]), message])
-      );
-      this.serialized = Buffer.concat([Buffer.from([version]), message, Buffer.from(signature)]);
-      this.messageVersion = this.CURRENT_VERSION;
-      this.keyId = keyId;
-      this.iteration = iteration;
-      this.ciphertext = ciphertext;
-      this.signature = signature;
+      throw new Error("Use SenderKeyMessage.create(...) to build this message.");
     }
+  }
+
+  static async create(keyId, iteration, ciphertext, signatureKey) {
+    const version = (((this.prototype.CURRENT_VERSION << 4) | this.prototype.CURRENT_VERSION) & 0xff) % 256;
+    const ciphertextBuffer = Buffer.from(ciphertext);
+
+    const message = protobufs.SenderKeyMessage.encode(
+      protobufs.SenderKeyMessage.create({
+        id: keyId,
+        iteration,
+        ciphertext: ciphertextBuffer
+      })
+    ).finish();
+
+    const serializedPayload = Buffer.concat([Buffer.from([version]), message]);
+
+    const signature = await this.prototype.getSignature(signatureKey, serializedPayload);
+
+    const serialized = Buffer.concat([
+      serializedPayload,
+      Buffer.from(signature)
+    ]);
+
+    const instance = new SenderKeyMessage(null, null, null, null, serialized);
+    instance.keyId = keyId;
+    instance.iteration = iteration;
+    instance.ciphertext = ciphertextBuffer;
+    instance.signature = Buffer.from(signature);
+    instance.messageVersion = this.prototype.CURRENT_VERSION;
+    return instance;
   }
 
   getKeyId() {
@@ -70,14 +82,10 @@ class SenderKeyMessage extends CiphertextMessage {
     if (!res) throw new Error('Invalid signature!');
   }
 
-  getSignature(signatureKey, serialized) {
-    const signature = Buffer.from(
-      curve.calculateSignature(
-        signatureKey,
-        serialized
-      )
+  async getSignature(signatureKey, serialized) {
+    return Buffer.from(
+      await curve.calculateSignature(signatureKey, serialized)
     );
-    return signature;
   }
 
   serialize() {
