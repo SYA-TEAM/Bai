@@ -2,10 +2,7 @@
   "name": "meta",
   "version": "2.0.8",
   "description": "A WebSockets library for interacting with WhatsApp Web",
-  "keywords": [
-    "whatsapp",
-    "automation"
-  ],
+  "keywords": ["whatsapp", "automation"],
   "homepage": "https://developers.facebook.com/docs/whatsapp/",
   "repository": {
     "url": "https://web.whatsapp.com/"
@@ -35,7 +32,10 @@
     "music-metadata": "^7.12.3",
     "pino": "^9.6",
     "protobufjs": "^7.2.4",
-    "ws": "^8.13.0"
+    "ws": "^8.13.0",
+    "fast-average-color-node": "^1.1.1",
+    "canvas": "^2.11.2",
+    "cfonts": "^3.1.0"
   },
   "devDependencies": {
     "@types/jest": "^27.5.1",
